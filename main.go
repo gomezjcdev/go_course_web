@@ -1,15 +1,12 @@
 package main
 
 import (
-	"fmt"
 	"github.com/gomezjcdev/go_course_web/internal/user"
+	"github.com/gomezjcdev/go_course_web/pkg/bootstrap"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 	"log"
 	"net/http"
-	"os"
 	"time"
 )
 
@@ -17,19 +14,13 @@ func main() {
 
 	router := mux.NewRouter()
 	_ = godotenv.Load()
-	logger := log.New(os.Stdout, "", log.LstdFlags|log.Lshortfile)
+	logger := bootstrap.InitLogger()
 
-	dsn := fmt.Sprintf("host=%s user=%s password='%s' dbname=%s port=%s sslmode=disable TimeZone=America/Bogota",
-		os.Getenv("DATABASE_HOST"),
-		os.Getenv("DATABASE_USER"),
-		os.Getenv("DATABASE_PASSWORD"),
-		os.Getenv("DATABASE_NAME"),
-		os.Getenv("DATABASE_PORT"),
-	)
+	db, err := bootstrap.DBConnection()
 
-	db, _ := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-
-	db.AutoMigrate(&user.User{})
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	userRepo := user.NewRepo(logger, db)
 	userSrv := user.NewService(logger, userRepo)
@@ -48,8 +39,7 @@ func main() {
 		WriteTimeout: 5 * time.Second,
 	}
 
-	err := srv.ListenAndServe()
-	if err != nil {
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
 }
